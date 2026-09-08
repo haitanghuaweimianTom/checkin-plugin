@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>导出数据</title>
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>导出签到数据</h1>
+      <p>导出CSV格式的签到记录</p>
+    </div>
+    
+    <div class="card">
+      <h2>选择课程</h2>
+      <div class="form-group">
+        <select id="courseSelect">
+          <option value="">请选择课程</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2>数据预览</h2>
+      <div id="previewData" class="empty-state">
+        <p>请先选择课程</p>
+      </div>
+    </div>
+    
+    <div class="card">
+      <button id="exportBtn" class="btn btn-primary" disabled>
+        导出CSV文件
+      </button>
+    </div>
+    
+    <div class="nav-links">
+      <a href="courses.html">返回课程</a>
+    </div>
+  </div>
+  
+  <script type="module">
+    import { getUser } from '../../js/auth.js';
+    import { initSupabase } from '../../js/supabase.js';
+    import { getTeacherCourses, exportCheckInsCSV, getCourseCheckIns } from '../../js/api.js';
+    
+    const user = getUser();
+    if (!user || user.role !== 'teacher') {
+      window.location.href = 'login.html';
+    }
+    
+    await initSupabase();
+    
+    let courses = [];
+    let currentCourseId = null;
+    
+    async function loadCourses() {
+      try {
+        courses = await getTeacherCourses(user.name);
+        
+        const select = document.getElementById('courseSelect');
+        courses.forEach(course => {
+          const option = document.createElement('option');
+          option.value = course.id;
+          option.textContent = course.name;
+          select.appendChild(option);
+        });
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const preselected = urlParams.get('courseId');
+        if (preselected) {
+          select.value = preselected;
+          loadPreview(preselected);
+        }
+      } catch (error) {
+        console.error('加载课程失败:', error);
+      }
+    }
+    
+    async function loadPreview(courseId) {
+      if (!courseId) {
+        document.getElementById('previewData').innerHTML = '<p>请先选择课程</p>';
+        document.getElementById('exportBtn').disabled = true;
+        return;
+      }
+      
+      currentCourseId = courseId;
+      
+      try {
+        const checkIns = await getCourseCheckIns(courseId);
+        
+        const container = document.getElementById('previewData');
+        
+        if (checkIns.length === 0) {
+          container.innerHTML = '<p>暂无签到数据</p>';
+          document.getElementById('exportBtn').disabled = true;
+          return;
+        }
+        
+        document.getElementById('exportBtn').disabled = false;
+        
+        const previewHtml = `
+          <p style="margin-bottom: 12px;">共 ${checkIns.length} 条记录</p>
+          <div style="max-height: 300px; overflow-y: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+              <thead>
+                <tr style="background: #f5f5f5;">
+                  <th style="padding: 8px; text-align: left;">姓名</th>
+                  <th style="padding: 8px; text-align: left;">学号</th>
+                  <th style="padding: 8px; text-align: left;">时间</th>
+                  <th style="padding: 8px; text-align: left;">距离</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${checkIns.slice(0, 10).map(ci => `
+                  <tr style="border-bottom: 1px solid #f0f0f0;">
+                    <td style="padding: 8px;">${ci.students?.name || '-'}</td>
+                    <td style="padding: 8px;">${ci.students?.student_id || '-'}</td>
+                    <td style="padding: 8px;">${new Date(ci.created_at).toLocaleString('zh-CN')}</td>
+                    <td style="padding: 8px;">${ci.distance}米</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          ${checkIns.length > 10 ? `<p style="margin-top: 12px; color: #999;">显示前10条，共${checkIns.length}条</p>` : ''}
+        `;
+        
+        container.innerHTML = previewHtml;
+      } catch (error) {
+        console.error('加载预览失败:', error);
+      }
+    }
+    
+    document.getElementById('courseSelect').addEventListener('change', (e) => {
+      loadPreview(e.target.value);
+    });
+    
+    document.getElementById('exportBtn').addEventListener('click', async () => {
+      if (!currentCourseId) {
+        alert('请先选择课程');
+        return;
+      }
+      
+      try {
+        await exportCheckInsCSV(currentCourseId);
+        alert('导出成功！');
+      } catch (error) {
+        alert('导出失败: ' + error.message);
+      }
+    });
+    
+    loadCourses();
+  </script>
+</body>
+</html>

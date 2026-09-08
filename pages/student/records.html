@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>签到记录</title>
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>签到记录</h1>
+      <p>查看历史签到情况</p>
+    </div>
+    
+    <div class="card">
+      <h2>签到统计</h2>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="number" id="totalCount">0</div>
+          <div class="label">总签到次数</div>
+        </div>
+        <div class="stat-item">
+          <div class="number" id="successCount">0</div>
+          <div class="label">正常签到</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2>签到详情</h2>
+      <div id="checkInList" class="empty-state">
+        <p>暂无签到记录</p>
+      </div>
+    </div>
+    
+    <div class="nav-links">
+      <a href="checkin.html">返回签到</a>
+      <a href="join.html">切换课程</a>
+    </div>
+  </div>
+  
+  <script type="module">
+    import { getUser } from '../../js/auth.js';
+    import { initSupabase } from '../../js/supabase.js';
+    import { getStudentCheckIns } from '../../js/api.js';
+    
+    const user = getUser();
+    if (!user) {
+      window.location.href = 'login.html';
+    }
+    
+    await initSupabase();
+    
+    const courseId = user.current_course_id;
+    if (!courseId) {
+      window.location.href = 'join.html';
+    }
+    
+    async function loadCheckIns() {
+      try {
+        const checkIns = await getStudentCheckIns(user.id || user.student_id, courseId);
+        
+        document.getElementById('totalCount').textContent = checkIns.length;
+        document.getElementById('successCount').textContent = checkIns.filter(c => c.status === '正常').length;
+        
+        const container = document.getElementById('checkInList');
+        
+        if (checkIns.length === 0) {
+          container.innerHTML = '<p>暂无签到记录</p>';
+          return;
+        }
+        
+        container.innerHTML = checkIns.map(ci => `
+          <div class="list-item">
+            <div class="list-item-info">
+              <h3>${new Date(ci.created_at).toLocaleDateString('zh-CN')}</h3>
+              <p>${new Date(ci.created_at).toLocaleTimeString('zh-CN')} · 距离${ci.distance}米</p>
+            </div>
+            <span class="status-badge status-success">${ci.status}</span>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('加载签到记录失败:', error);
+      }
+    }
+    
+    loadCheckIns();
+  </script>
+</body>
+</html>

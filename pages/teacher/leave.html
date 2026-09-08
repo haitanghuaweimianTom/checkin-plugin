@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>请假审批</title>
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>请假审批</h1>
+      <p>审批学生的请假申请</p>
+    </div>
+    
+    <div class="card">
+      <h2>选择课程</h2>
+      <div class="form-group">
+        <select id="courseSelect">
+          <option value="">请选择课程</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2>待审批请假</h2>
+      <div id="leaveList" class="empty-state">
+        <p>请先选择课程</p>
+      </div>
+    </div>
+    
+    <div class="nav-links">
+      <a href="courses.html">返回课程</a>
+    </div>
+  </div>
+  
+  <script type="module">
+    import { getUser } from '../../js/auth.js';
+    import { initSupabase, getSupabase } from '../../js/supabase.js';
+    import { getTeacherCourses, getPendingLeaves, approveLeave } from '../../js/api.js';
+    
+    const user = getUser();
+    if (!user || user.role !== 'teacher') {
+      window.location.href = 'login.html';
+    }
+    
+    await initSupabase();
+    
+    let courses = [];
+    
+    async function loadCourses() {
+      try {
+        courses = await getTeacherCourses(user.name);
+        
+        const select = document.getElementById('courseSelect');
+        courses.forEach(course => {
+          const option = document.createElement('option');
+          option.value = course.id;
+          option.textContent = course.name;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        console.error('加载课程失败:', error);
+      }
+    }
+    
+    async function loadPendingLeaves(courseId) {
+      if (!courseId) {
+        document.getElementById('leaveList').innerHTML = '<p>请先选择课程</p>';
+        return;
+      }
+      
+      try {
+        const leaves = await getPendingLeaves(courseId);
+        
+        const container = document.getElementById('leaveList');
+        
+        if (leaves.length === 0) {
+          container.innerHTML = '<p>暂无待审批请假</p>';
+          return;
+        }
+        
+        container.innerHTML = leaves.map(leave => `
+          <div class="card" style="margin-bottom: 12px;">
+            <div class="list-item-info">
+              <h3>${leave.students?.name || '未知'} (${leave.students?.student_id || ''})</h3>
+              <p>日期: ${leave.date}</p>
+              <p>原因: ${leave.reason}</p>
+              <p style="color: #999; font-size: 12px;">提交时间: ${new Date(leave.created_at).toLocaleString('zh-CN')}</p>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 12px;">
+              <button class="btn btn-success btn-sm" onclick="handleApprove('${leave.id}', '已批准')">批准</button>
+              <button class="btn btn-danger btn-sm" onclick="handleApprove('${leave.id}', '已拒绝')">拒绝</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('加载请假记录失败:', error);
+      }
+    }
+    
+    window.handleApprove = async (leaveId, status) => {
+      try {
+        await approveLeave(leaveId, status);
+        alert(`已${status}`);
+        const courseId = document.getElementById('courseSelect').value;
+        loadPendingLeaves(courseId);
+      } catch (error) {
+        alert('操作失败: ' + error.message);
+      }
+    };
+    
+    document.getElementById('courseSelect').addEventListener('change', (e) => {
+      loadPendingLeaves(e.target.value);
+    });
+    
+    loadCourses();
+  </script>
+</body>
+</html>

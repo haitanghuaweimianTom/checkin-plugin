@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>签到</title>
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>签到</h1>
+      <p id="courseInfo">请先加入课程</p>
+    </div>
+    
+    <div class="card">
+      <div class="location-status">
+        <div id="locationIcon" class="location-icon loading">📍</div>
+      </div>
+      
+      <div class="distance-info">
+        <span>距离教室</span>
+        <strong id="distanceValue">--</strong>
+        <span id="distanceStatus">正在获取位置...</span>
+      </div>
+    </div>
+    
+    <div class="card">
+      <button id="checkInBtn" class="btn btn-primary" disabled>
+        签到
+      </button>
+    </div>
+    
+    <div id="message" class="card" style="display: none;"></div>
+    
+    <div class="nav-links">
+      <a href="records.html">签到记录</a>
+      <a href="leave.html">请假申请</a>
+      <a href="join.html">切换课程</a>
+    </div>
+  </div>
+  
+  <script type="module">
+    import { getUser } from '../../js/auth.js';
+    import { initSupabase } from '../../js/supabase.js';
+    import { getCurrentPosition, isWithinClassroom } from '../../js/location.js';
+    import { checkIn, getStudentCheckIns } from '../../js/api.js';
+    
+    const user = getUser();
+    if (!user) {
+      window.location.href = 'login.html';
+    }
+    
+    await initSupabase();
+    
+    const courseId = user.current_course_id;
+    if (!courseId) {
+      document.getElementById('courseInfo').textContent = '请先加入课程';
+      return;
+    }
+    
+    const currentCourse = user.courses?.find(c => c.id === courseId);
+    if (currentCourse) {
+      document.getElementById('courseInfo').textContent = currentCourse.name;
+    }
+    
+    const locationIcon = document.getElementById('locationIcon');
+    const distanceValue = document.getElementById('distanceValue');
+    const distanceStatus = document.getElementById('distanceStatus');
+    const checkInBtn = document.getElementById('checkInBtn');
+    const messageDiv = document.getElementById('message');
+    
+    let userLocation = null;
+    let isWithin = false;
+    
+    async function updateLocation() {
+      try {
+        locationIcon.className = 'location-icon loading';
+        distanceStatus.textContent = '正在获取位置...';
+        
+        const position = await getCurrentPosition();
+        userLocation = position;
+        
+        const result = isWithinClassroom(position.lat, position.lng);
+        isWithin = result.isWithin;
+        
+        distanceValue.textContent = `${result.distance}m`;
+        
+        if (result.isWithin) {
+          locationIcon.className = 'location-icon success';
+          distanceStatus.textContent = '在签到范围内';
+          distanceStatus.style.color = '#28a745';
+        } else {
+          locationIcon.className = 'location-icon error';
+          distanceStatus.textContent = '不在签到范围内';
+          distanceStatus.style.color = '#dc3545';
+        }
+        
+        checkInBtn.disabled = !result.isWithin;
+      } catch (error) {
+        locationIcon.className = 'location-icon error';
+        distanceStatus.textContent = error.message;
+        distanceStatus.style.color = '#dc3545';
+      }
+    }
+    
+    async function checkTodayCheckedIn() {
+      try {
+        const checkIns = await getStudentCheckIns(user.id || user.student_id, courseId);
+        const today = new Date().toISOString().split('T')[0];
+        
+        const todayCheckIn = checkIns.find(ci => 
+          ci.created_at.startsWith(today)
+        );
+        
+        if (todayCheckIn) {
+          checkInBtn.disabled = true;
+          checkInBtn.textContent = '今日已签到';
+          showMessage('今日已完成签到', 'success');
+        }
+      } catch (error) {
+        console.error('检查签到状态失败:', error);
+      }
+    }
+    
+    function showMessage(text, type) {
+      messageDiv.style.display = 'block';
+      messageDiv.className = `card alert alert-${type}`;
+      messageDiv.textContent = text;
+    }
+    
+    checkInBtn.addEventListener('click', async () => {
+      if (!isWithin || !userLocation) {
+        alert('请在教室内签到');
+        return;
+      }
+      
+      checkInBtn.disabled = true;
+      checkInBtn.innerHTML = '<span class="loading-spinner"></span> 签到中...';
+      
+      try {
+        const result = await checkIn(
+          user.id || user.student_id,
+          courseId,
+          {
+            lat: userLocation.lat,
+            lng: userLocation.lng,
+            distance: isWithinClassroom(userLocation.lat, userLocation.lng).distance
+          }
+        );
+        
+        showMessage('签到成功！', 'success');
+        checkInBtn.textContent = '今日已签到';
+      } catch (error) {
+        showMessage(error.message, 'error');
+        checkInBtn.disabled = false;
+        checkInBtn.textContent = '签到';
+      }
+    });
+    
+    await updateLocation();
+    await checkTodayCheckedIn();
+    
+    setInterval(updateLocation, 10000);
+  </script>
+</body>
+</html>

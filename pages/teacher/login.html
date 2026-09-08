@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>教师登录</title>
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>教师登录</h1>
+      <p>输入教师姓名登录</p>
+    </div>
+    
+    <div class="card">
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="teacherName">教师姓名</label>
+          <input type="text" id="teacherName" placeholder="请输入姓名" required>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">登录</button>
+      </form>
+    </div>
+    
+    <div class="nav-links">
+      <a href="../../index.html">返回首页</a>
+    </div>
+  </div>
+  
+  <script type="module">
+    import { setUser, isLoggedIn } from '../../js/auth.js';
+    
+    if (isLoggedIn()) {
+      window.location.href = 'courses.html';
+    }
+    
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const name = document.getElementById('teacherName').value.trim();
+      
+      if (!name) {
+        alert('请输入姓名');
+        return;
+      }
+      
+      setUser({
+        role: 'teacher',
+        name: name
+      });
+      
+      window.location.href = 'courses.html';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>课堂签到</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>课堂签到系统</h1>
+      <p>GPS定位签到 · 快速便捷</p>
+    </div>
+    
+    <div class="card">
+      <h2>选择身份</h2>
+      <p style="color: #666; margin-bottom: 20px; font-size: 14px;">请选择您的角色进入系统</p>
+      
+      <a href="pages/student/login.html" class="btn btn-primary" style="margin-bottom: 12px; text-decoration: none; text-align: center;">
+        学生签到
+      </a>
+      
+      <a href="pages/teacher/login.html" class="btn btn-secondary" style="text-decoration: none; text-align: center;">
+        教师管理
+      </a>
+    </div>
+    
+    <div class="card" style="background: #f8f9fa;">
+      <p style="font-size: 13px; color: #666; text-align: center;">
+        使用说明：学生通过课程码加入班级，上课前点击签到按钮完成签到。教师可实时查看签到情况并导出数据。
+      </p>
+    </div>
+  </div>
+  
+  <script type="module">
+    import { isLoggedIn, isTeacher, isStudent } from '../js/auth.js';
+    
+    if (isLoggedIn()) {
+      if (isTeacher()) {
+        window.location.href = 'pages/teacher/courses.html';
+      } else if (isStudent()) {
+        window.location.href = 'pages/student/checkin.html';
+      }
+    }
+  </script>
+</body>
+</html>

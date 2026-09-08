@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>课程管理</title>
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>课程管理</h1>
+      <p>创建和管理课程</p>
+    </div>
+    
+    <div class="card">
+      <h2>创建新课程</h2>
+      <form id="createCourseForm">
+        <div class="form-group">
+          <label for="courseName">课程名称</label>
+          <input type="text" id="courseName" placeholder="例如：计算机网络" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="classroomName">教室位置</label>
+          <input type="text" id="classroomName" placeholder="使用当前位置" disabled>
+          <small style="color: #666; font-size: 12px;">将使用默认教室坐标</small>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">创建课程</button>
+      </form>
+    </div>
+    
+    <div class="card">
+      <h2>我的课程</h2>
+      <div id="courseList" class="empty-state">
+        <p>暂无课程</p>
+      </div>
+    </div>
+    
+    <div class="nav-links">
+      <a href="leave.html">请假审批</a>
+      <a href="../../index.html">返回首页</a>
+    </div>
+  </div>
+  
+  <script type="module">
+    import { getUser, clearUser } from '../../js/auth.js';
+    import { initSupabase } from '../../js/supabase.js';
+    import { createCourse, getTeacherCourses } from '../../js/api.js';
+    import CONFIG from '../../js/config.js';
+    
+    const user = getUser();
+    if (!user || user.role !== 'teacher') {
+      window.location.href = 'login.html';
+    }
+    
+    await initSupabase();
+    
+    document.getElementById('classroomName').value = 
+      `当前位置 (${CONFIG.CLASSROOM_LOCATION.lat}, ${CONFIG.CLASSROOM_LOCATION.lng})`;
+    
+    async function loadCourses() {
+      try {
+        const courses = await getTeacherCourses(user.name);
+        
+        const container = document.getElementById('courseList');
+        
+        if (courses.length === 0) {
+          container.innerHTML = '<p>暂无课程</p>';
+          return;
+        }
+        
+        container.innerHTML = courses.map(course => `
+          <div class="list-item">
+            <div class="list-item-info">
+              <h3>${course.name}</h3>
+              <p>课程码: <strong>${course.code}</strong></p>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-primary btn-sm" onclick="viewMonitor('${course.id}')">监控</button>
+              <button class="btn btn-success btn-sm" onclick="exportData('${course.id}')">导出</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('加载课程失败:', error);
+      }
+    }
+    
+    window.viewMonitor = (courseId) => {
+      window.location.href = `monitor.html?courseId=${courseId}`;
+    };
+    
+    window.exportData = (courseId) => {
+      window.location.href = `export.html?courseId=${courseId}`;
+    };
+    
+    document.getElementById('createCourseForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const name = document.getElementById('courseName').value.trim();
+      
+      if (!name) {
+        alert('请输入课程名称');
+        return;
+      }
+      
+      try {
+        const course = await createCourse(name, user.name, CONFIG.CLASSROOM_LOCATION);
+        alert(`课程创建成功！课程码: ${course.code}`);
+        document.getElementById('courseName').value = '';
+        loadCourses();
+      } catch (error) {
+        alert('创建失败: ' + error.message);
+      }
+    });
+    
+    loadCourses();
+  </script>
+</body>
+</html>
