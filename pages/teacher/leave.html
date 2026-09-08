@@ -42,9 +42,10 @@
     const user = getUser();
     if (!user || user.role !== 'teacher') {
       window.location.href = 'login.html';
+      return;
     }
     
-    await initSupabase();
+    try { await initSupabase(); } catch(e) { console.error(e); }
     
     let courses = [];
     

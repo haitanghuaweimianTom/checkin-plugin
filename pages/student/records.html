@@ -48,13 +48,15 @@
     const user = getUser();
     if (!user) {
       window.location.href = 'login.html';
+      return;
     }
     
-    await initSupabase();
+    try { await initSupabase(); } catch(e) { console.error(e); }
     
     const courseId = user.current_course_id;
     if (!courseId) {
       window.location.href = 'join.html';
+      return;
     }
     
     async function loadCheckIns() {

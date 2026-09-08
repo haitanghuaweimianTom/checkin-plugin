@@ -32,17 +32,5 @@
       </p>
     </div>
   </div>
-  
-  <script type="module">
-    import { isLoggedIn, isTeacher, isStudent } from '../js/auth.js';
-    
-    if (isLoggedIn()) {
-      if (isTeacher()) {
-        window.location.href = 'pages/teacher/courses.html';
-      } else if (isStudent()) {
-        window.location.href = 'pages/student/checkin.html';
-      }
-    }
-  </script>
 </body>
 </html>

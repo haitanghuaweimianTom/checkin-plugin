@@ -30,11 +30,7 @@
   </div>
   
   <script type="module">
-    import { setUser, isLoggedIn } from '../../js/auth.js';
-    
-    if (isLoggedIn()) {
-      window.location.href = 'courses.html';
-    }
+    import { setUser } from '../../js/auth.js';
     
     document.getElementById('loginForm').addEventListener('submit', (e) => {
       e.preventDefault();

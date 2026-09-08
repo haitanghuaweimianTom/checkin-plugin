@@ -65,15 +65,17 @@
     const user = getUser();
     if (!user || user.role !== 'teacher') {
       window.location.href = 'login.html';
+      return;
     }
     
-    await initSupabase();
+    try { await initSupabase(); } catch(e) { console.error(e); }
     
     const urlParams = new URLSearchParams(window.location.search);
     const courseId = urlParams.get('courseId');
     
     if (!courseId) {
       window.location.href = 'courses.html';
+      return;
     }
     
     let students = [];
