@@ -35,7 +35,7 @@
   </div>
   
   <script type="module">
-    import { setUser } from '../../js/auth.js';
+    import { studentLogin } from '../../js/auth.js';
     
     document.getElementById('loginForm').addEventListener('submit', (e) => {
       e.preventDefault();
@@ -48,12 +48,7 @@
         return;
       }
       
-      setUser({
-        role: 'student',
-        student_id: studentId,
-        name: name
-      });
-      
+      studentLogin(studentId, name);
       window.location.href = 'join.html';
     });
   </script>

@@ -2,7 +2,7 @@ let supabaseClient = null;
 
 export async function initSupabase() {
   if (supabaseClient) return supabaseClient;
-  
+
   if (!window.supabase) {
     await new Promise((resolve, reject) => {
       const script = document.createElement('script');
@@ -12,7 +12,7 @@ export async function initSupabase() {
       document.head.appendChild(script);
     });
   }
-  
+
   const { SUPABASE_URL, SUPABASE_ANON_KEY } = await import('./config.js');
   supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   return supabaseClient;

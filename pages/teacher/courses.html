@@ -10,7 +10,7 @@
   <div class="container">
     <div class="header">
       <h1>课程管理</h1>
-      <p>创建和管理课程</p>
+      <p id="teacherInfo"></p>
     </div>
     
     <div class="card">
@@ -40,12 +40,13 @@
     
     <div class="nav-links">
       <a href="leave.html">请假审批</a>
-      <a href="../../index.html">返回首页</a>
+      <a href="admin.html">系统管理</a>
+      <a href="#" id="logoutBtn">退出登录</a>
     </div>
   </div>
   
   <script type="module">
-    import { getUser } from '../../js/auth.js';
+    import { getUser, teacherLogout } from '../../js/auth.js';
     import { initSupabase } from '../../js/supabase.js';
     import { createCourse, getTeacherCourses } from '../../js/api.js';
     import { CLASSROOM_LOCATION } from '../../js/config.js';
@@ -56,19 +57,15 @@
       return;
     }
     
-    try {
-      await initSupabase();
-    } catch (e) {
-      console.error('Supabase init failed:', e);
-    }
+    try { await initSupabase(); } catch (e) { console.error(e); }
     
+    document.getElementById('teacherInfo').textContent = `欢迎, ${user.name}`;
     document.getElementById('classroomName').value = 
       `当前位置 (${CLASSROOM_LOCATION.lat}, ${CLASSROOM_LOCATION.lng})`;
     
     async function loadCourses() {
       try {
         const courses = await getTeacherCourses(user.name);
-        
         const container = document.getElementById('courseList');
         
         if (courses.length === 0) {
@@ -119,6 +116,12 @@
       } catch (error) {
         alert('创建失败: ' + error.message);
       }
+    });
+    
+    document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await teacherLogout();
+      window.location.href = 'login.html';
     });
     
     loadCourses();
