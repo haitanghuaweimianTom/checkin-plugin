@@ -1,4 +1,4 @@
-import CONFIG from './config.js';
+import { CLASSROOM_LOCATION, CHECK_IN_DISTANCE } from './config.js';
 
 export function getCurrentPosition() {
   return new Promise((resolve, reject) => {
@@ -51,10 +51,10 @@ export function calculateDistance(lat1, lng1, lat2, lng2) {
 }
 
 export function isWithinClassroom(userLat, userLng) {
-  const { lat: classLat, lng: classLng } = CONFIG.CLASSROOM_LOCATION;
+  const { lat: classLat, lng: classLng } = CLASSROOM_LOCATION;
   const distance = calculateDistance(userLat, userLng, classLat, classLng);
   return {
     distance: Math.round(distance),
-    isWithin: distance <= CONFIG.CHECK_IN_DISTANCE
+    isWithin: distance <= CHECK_IN_DISTANCE
   };
 }

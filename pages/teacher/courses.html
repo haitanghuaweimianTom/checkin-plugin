@@ -48,7 +48,7 @@
     import { getUser } from '../../js/auth.js';
     import { initSupabase } from '../../js/supabase.js';
     import { createCourse, getTeacherCourses } from '../../js/api.js';
-    import CONFIG from '../../js/config.js';
+    import { CLASSROOM_LOCATION } from '../../js/config.js';
     
     const user = getUser();
     if (!user || user.role !== 'teacher') {
@@ -63,7 +63,7 @@
     }
     
     document.getElementById('classroomName').value = 
-      `当前位置 (${CONFIG.CLASSROOM_LOCATION.lat}, ${CONFIG.CLASSROOM_LOCATION.lng})`;
+      `当前位置 (${CLASSROOM_LOCATION.lat}, ${CLASSROOM_LOCATION.lng})`;
     
     async function loadCourses() {
       try {
@@ -112,7 +112,7 @@
       }
       
       try {
-        const course = await createCourse(name, user.name, CONFIG.CLASSROOM_LOCATION);
+        const course = await createCourse(name, user.name, CLASSROOM_LOCATION);
         alert(`课程创建成功！课程码: ${course.code}`);
         document.getElementById('courseName').value = '';
         loadCourses();
