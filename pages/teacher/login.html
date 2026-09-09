@@ -35,10 +35,8 @@
   </div>
   
   <script type="module">
-    import { teacherLogin } from '../../js/auth.js';
-    import { initSupabase } from '../../js/supabase.js';
-    
-    try { await initSupabase(); } catch(e) { console.error(e); }
+    import { setUser } from '../../js/auth.js';
+    import { teacherLogin } from '../../js/api.js';
     
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -52,7 +50,8 @@
       }
       
       try {
-        await teacherLogin(name, password);
+        const data = await teacherLogin(name, password);
+        setUser({ role: 'teacher', id: data.id, name: data.name });
         window.location.href = 'courses.html';
       } catch (error) {
         alert(error.message);

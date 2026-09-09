@@ -36,7 +36,6 @@
   
   <script type="module">
     import { getUser } from '../../js/auth.js';
-    import { initSupabase, getSupabase } from '../../js/supabase.js';
     import { getTeacherCourses, getPendingLeaves, approveLeave } from '../../js/api.js';
     
     const user = getUser();
@@ -45,14 +44,9 @@
       return;
     }
     
-    try { await initSupabase(); } catch(e) { console.error(e); }
-    
-    let courses = [];
-    
     async function loadCourses() {
       try {
-        courses = await getTeacherCourses(user.name);
-        
+        const courses = await getTeacherCourses(user.id);
         const select = document.getElementById('courseSelect');
         courses.forEach(course => {
           const option = document.createElement('option');
@@ -73,7 +67,6 @@
       
       try {
         const leaves = await getPendingLeaves(courseId);
-        
         const container = document.getElementById('leaveList');
         
         if (leaves.length === 0) {
@@ -87,7 +80,6 @@
               <h3>${leave.students?.name || '未知'} (${leave.students?.student_id || ''})</h3>
               <p>日期: ${leave.date}</p>
               <p>原因: ${leave.reason}</p>
-              <p style="color: #999; font-size: 12px;">提交时间: ${new Date(leave.created_at).toLocaleString('zh-CN')}</p>
             </div>
             <div style="display: flex; gap: 8px; margin-top: 12px;">
               <button class="btn btn-success btn-sm" onclick="handleApprove('${leave.id}', '已批准')">批准</button>

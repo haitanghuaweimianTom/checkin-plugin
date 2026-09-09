@@ -17,7 +17,6 @@
       <div class="location-status">
         <div id="locationIcon" class="location-icon loading">📍</div>
       </div>
-      
       <div class="distance-info">
         <span>距离教室</span>
         <strong id="distanceValue">--</strong>
@@ -26,9 +25,7 @@
     </div>
     
     <div class="card">
-      <button id="checkInBtn" class="btn btn-primary" disabled>
-        签到
-      </button>
+      <button id="checkInBtn" class="btn btn-primary" disabled>签到</button>
     </div>
     
     <div id="message" class="card" style="display: none;"></div>
@@ -42,23 +39,14 @@
   
   <script type="module">
     import { getUser } from '../../js/auth.js';
-    import { initSupabase } from '../../js/supabase.js';
     import { getCurrentPosition, isWithinClassroom } from '../../js/location.js';
     import { checkIn, getStudentCheckIns } from '../../js/api.js';
     
     const user = getUser();
-    if (!user) {
-      window.location.href = 'login.html';
-      return;
-    }
-    
-    try { await initSupabase(); } catch(e) { console.error(e); }
+    if (!user) { window.location.href = 'login.html'; return; }
     
     const courseId = user.current_course_id;
-    if (!courseId) {
-      document.getElementById('courseInfo').textContent = '请先加入课程';
-      return;
-    }
+    if (!courseId) { document.getElementById('courseInfo').textContent = '请先加入课程'; return; }
     
     const currentCourse = user.courses?.find(c => c.id === courseId);
     if (currentCourse) {
@@ -107,12 +95,9 @@
     
     async function checkTodayCheckedIn() {
       try {
-        const checkIns = await getStudentCheckIns(user.id || user.student_id, courseId);
+        const checkIns = await getStudentCheckIns(user.student_id, courseId);
         const today = new Date().toISOString().split('T')[0];
-        
-        const todayCheckIn = checkIns.find(ci => 
-          ci.created_at.startsWith(today)
-        );
+        const todayCheckIn = checkIns.find(c => c.created_at && c.created_at.startsWith(today));
         
         if (todayCheckIn) {
           checkInBtn.disabled = true;
@@ -131,25 +116,13 @@
     }
     
     checkInBtn.addEventListener('click', async () => {
-      if (!isWithin || !userLocation) {
-        alert('请在教室内签到');
-        return;
-      }
+      if (!isWithin || !userLocation) { alert('请在教室内签到'); return; }
       
       checkInBtn.disabled = true;
-      checkInBtn.innerHTML = '<span class="loading-spinner"></span> 签到中...';
+      checkInBtn.textContent = '签到中...';
       
       try {
-        const result = await checkIn(
-          user.id || user.student_id,
-          courseId,
-          {
-            lat: userLocation.lat,
-            lng: userLocation.lng,
-            distance: isWithinClassroom(userLocation.lat, userLocation.lng).distance
-          }
-        );
-        
+        await checkIn(user.student_id, courseId, userLocation.lat, userLocation.lng, isWithinClassroom(userLocation.lat, userLocation.lng).distance);
         showMessage('签到成功！', 'success');
         checkInBtn.textContent = '今日已签到';
       } catch (error) {
@@ -161,7 +134,6 @@
     
     await updateLocation();
     await checkTodayCheckedIn();
-    
     setInterval(updateLocation, 10000);
   </script>
 </body>

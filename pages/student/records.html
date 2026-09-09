@@ -42,44 +42,31 @@
   
   <script type="module">
     import { getUser } from '../../js/auth.js';
-    import { initSupabase } from '../../js/supabase.js';
     import { getStudentCheckIns } from '../../js/api.js';
     
     const user = getUser();
-    if (!user) {
-      window.location.href = 'login.html';
-      return;
-    }
-    
-    try { await initSupabase(); } catch(e) { console.error(e); }
+    if (!user) { window.location.href = 'login.html'; return; }
     
     const courseId = user.current_course_id;
-    if (!courseId) {
-      window.location.href = 'join.html';
-      return;
-    }
+    if (!courseId) { window.location.href = 'join.html'; return; }
     
     async function loadCheckIns() {
       try {
-        const checkIns = await getStudentCheckIns(user.id || user.student_id, courseId);
+        const checkIns = await getStudentCheckIns(user.student_id, courseId);
         
         document.getElementById('totalCount').textContent = checkIns.length;
         document.getElementById('successCount').textContent = checkIns.filter(c => c.status === '正常').length;
         
         const container = document.getElementById('checkInList');
+        if (checkIns.length === 0) { container.innerHTML = '<p>暂无签到记录</p>'; return; }
         
-        if (checkIns.length === 0) {
-          container.innerHTML = '<p>暂无签到记录</p>';
-          return;
-        }
-        
-        container.innerHTML = checkIns.map(ci => `
+        container.innerHTML = checkIns.map(c => `
           <div class="list-item">
             <div class="list-item-info">
-              <h3>${new Date(ci.created_at).toLocaleDateString('zh-CN')}</h3>
-              <p>${new Date(ci.created_at).toLocaleTimeString('zh-CN')} · 距离${ci.distance}米</p>
+              <h3>${new Date(c.created_at).toLocaleDateString('zh-CN')}</h3>
+              <p>${new Date(c.created_at).toLocaleTimeString('zh-CN')} · 距离${c.distance}米</p>
             </div>
-            <span class="status-badge status-success">${ci.status}</span>
+            <span class="status-badge status-success">${c.status}</span>
           </div>
         `).join('');
       } catch (error) {

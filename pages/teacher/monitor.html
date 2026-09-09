@@ -24,7 +24,6 @@
           <div class="label">已签到</div>
         </div>
       </div>
-      
       <div class="stats-grid">
         <div class="stat-item">
           <div class="number" id="notCheckedInCount">0</div>
@@ -38,29 +37,23 @@
     </div>
     
     <div class="card">
-      <h2>签到列表</h2>
-      <div id="checkInList" class="empty-state">
-        <p>暂无签到记录</p>
-      </div>
+      <h2>已签到</h2>
+      <div id="checkInList" class="empty-state"><p>暂无记录</p></div>
     </div>
     
     <div class="card">
-      <h2>未签到学生</h2>
-      <div id="notCheckedInList" class="empty-state">
-        <p>全部已签到</p>
-      </div>
+      <h2>未签到</h2>
+      <div id="notCheckedInList" class="empty-state"><p>暂无学生</p></div>
     </div>
     
     <div class="nav-links">
       <a href="courses.html">返回课程</a>
-      <a href="export.html?courseId=${courseId}">导出数据</a>
     </div>
   </div>
   
   <script type="module">
     import { getUser } from '../../js/auth.js';
-    import { initSupabase, getSupabase } from '../../js/supabase.js';
-    import { getCourseStudents, getCourseCheckIns, subscribeToCheckIns } from '../../js/api.js';
+    import { getCourseStudents, getCourseCheckIns } from '../../js/api.js';
     
     const user = getUser();
     if (!user || user.role !== 'teacher') {
@@ -68,15 +61,9 @@
       return;
     }
     
-    try { await initSupabase(); } catch(e) { console.error(e); }
-    
     const urlParams = new URLSearchParams(window.location.search);
     const courseId = urlParams.get('courseId');
-    
-    if (!courseId) {
-      window.location.href = 'courses.html';
-      return;
-    }
+    if (!courseId) { window.location.href = 'courses.html'; return; }
     
     let students = [];
     let checkIns = [];
@@ -86,83 +73,54 @@
         students = await getCourseStudents(courseId);
         checkIns = await getCourseCheckIns(courseId);
         
-        updateStats();
-        renderCheckInList();
-        renderNotCheckedInList();
+        const today = new Date().toISOString().split('T')[0];
+        const todayCheckIns = checkIns.filter(c => c.created_at && c.created_at.startsWith(today));
+        
+        document.getElementById('studentCount').textContent = students.length;
+        document.getElementById('checkedInCount').textContent = todayCheckIns.length;
+        document.getElementById('notCheckedInCount').textContent = students.length - todayCheckIns.length;
+        document.getElementById('checkInRate').textContent = students.length > 0 
+          ? Math.round((todayCheckIns.length / students.length) * 100) + '%' : '0%';
+        
+        const checkInContainer = document.getElementById('checkInList');
+        if (todayCheckIns.length === 0) {
+          checkInContainer.innerHTML = '<p>今日暂无签到</p>';
+        } else {
+          checkInContainer.innerHTML = todayCheckIns.map(c => `
+            <div class="list-item">
+              <div class="list-item-info">
+                <h3>${c.students?.name || '未知'}</h3>
+                <p>${c.students?.student_id || ''} · ${new Date(c.created_at).toLocaleTimeString('zh-CN')} · 距离${c.distance}米</p>
+              </div>
+              <span class="status-badge status-success">${c.status}</span>
+            </div>
+          `).join('');
+        }
+        
+        const notCheckInContainer = document.getElementById('notCheckedInList');
+        const checkedIds = todayCheckIns.map(c => c.student_id);
+        const notChecked = students.filter(s => !checkedIds.includes(s.student_id));
+        
+        if (notChecked.length === 0) {
+          notCheckInContainer.innerHTML = '<p>全部已签到</p>';
+        } else {
+          notCheckInContainer.innerHTML = notChecked.map(s => `
+            <div class="list-item">
+              <div class="list-item-info">
+                <h3>${s.name}</h3>
+                <p>${s.student_id}</p>
+              </div>
+              <span class="status-badge status-warning">未签到</span>
+            </div>
+          `).join('');
+        }
       } catch (error) {
         console.error('加载数据失败:', error);
       }
     }
     
-    function updateStats() {
-      const today = new Date().toISOString().split('T')[0];
-      const todayCheckIns = checkIns.filter(ci => ci.created_at.startsWith(today));
-      
-      document.getElementById('studentCount').textContent = students.length;
-      document.getElementById('checkedInCount').textContent = todayCheckIns.length;
-      document.getElementById('notCheckedInCount').textContent = students.length - todayCheckIns.length;
-      
-      const rate = students.length > 0 
-        ? Math.round((todayCheckIns.length / students.length) * 100) 
-        : 0;
-      document.getElementById('checkInRate').textContent = `${rate}%`;
-    }
-    
-    function renderCheckInList() {
-      const container = document.getElementById('checkInList');
-      const today = new Date().toISOString().split('T')[0];
-      const todayCheckIns = checkIns.filter(ci => ci.created_at.startsWith(today));
-      
-      if (todayCheckIns.length === 0) {
-        container.innerHTML = '<p>今日暂无签到记录</p>';
-        return;
-      }
-      
-      container.innerHTML = todayCheckIns.map(ci => `
-        <div class="list-item">
-          <div class="list-item-info">
-            <h3>${ci.students?.name || '未知'}</h3>
-            <p>${ci.students?.student_id || ''} · ${new Date(ci.created_at).toLocaleTimeString('zh-CN')} · 距离${ci.distance}米</p>
-          </div>
-          <span class="status-badge status-success">${ci.status}</span>
-        </div>
-      `).join('');
-    }
-    
-    function renderNotCheckedInList() {
-      const container = document.getElementById('notCheckedInList');
-      const today = new Date().toISOString().split('T')[0];
-      const todayCheckIns = checkIns.filter(ci => ci.created_at.startsWith(today));
-      const checkedInStudentIds = todayCheckIns.map(ci => ci.student_id);
-      
-      const notCheckedIn = students.filter(s => !checkedInStudentIds.includes(s.student_id));
-      
-      if (notCheckedIn.length === 0) {
-        container.innerHTML = '<p>全部已签到</p>';
-        return;
-      }
-      
-      container.innerHTML = notCheckedIn.map(s => `
-        <div class="list-item">
-          <div class="list-item-info">
-            <h3>${s.name}</h3>
-            <p>${s.student_id}</p>
-          </div>
-          <span class="status-badge status-warning">未签到</span>
-        </div>
-      `).join('');
-    }
-    
-    subscribeToCheckIns(courseId, (payload) => {
-      checkIns.push(payload.new);
-      updateStats();
-      renderCheckInList();
-      renderNotCheckedInList();
-    });
-    
     loadData();
-    
-    setInterval(loadData, 30000);
+    setInterval(loadData, 5000);
   </script>
 </body>
 </html>

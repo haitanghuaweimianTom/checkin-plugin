@@ -19,12 +19,10 @@
           <label for="leaveDate">请假日期</label>
           <input type="date" id="leaveDate" required>
         </div>
-        
         <div class="form-group">
           <label for="reason">请假原因</label>
           <textarea id="reason" rows="4" placeholder="请输入请假原因" required></textarea>
         </div>
-        
         <button type="submit" class="btn btn-primary">提交申请</button>
       </form>
     </div>
@@ -44,81 +42,49 @@
   
   <script type="module">
     import { getUser } from '../../js/auth.js';
-    import { initSupabase, getSupabase } from '../../js/supabase.js';
-    import { submitLeaveRequest } from '../../js/api.js';
+    import { submitLeaveRequest, getStudentLeaves } from '../../js/api.js';
     
     const user = getUser();
-    if (!user) {
-      window.location.href = 'login.html';
-      return;
-    }
-    
-    try { await initSupabase(); } catch(e) { console.error(e); }
+    if (!user) { window.location.href = 'login.html'; return; }
     
     const courseId = user.current_course_id;
-    if (!courseId) {
-      window.location.href = 'join.html';
-      return;
-    }
+    if (!courseId) { window.location.href = 'join.html'; return; }
     
     async function loadLeaveRequests() {
-      const supabase = getSupabase();
-      
-      const { data, error } = await supabase
-        .from('leave_requests')
-        .select('*')
-        .eq('student_id', user.id || user.student_id)
-        .eq('course_id', courseId)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('加载请假记录失败:', error);
-        return;
-      }
-      
-      const container = document.getElementById('leaveList');
-      
-      if (!data || data.length === 0) {
-        container.innerHTML = '<p>暂无请假记录</p>';
-        return;
-      }
-      
-      container.innerHTML = data.map(leave => {
-        let statusClass = 'status-info';
-        if (leave.status === '已批准') statusClass = 'status-success';
-        if (leave.status === '已拒绝') statusClass = 'status-danger';
+      try {
+        const data = await getStudentLeaves(user.student_id);
+        const container = document.getElementById('leaveList');
         
-        return `
-          <div class="list-item">
-            <div class="list-item-info">
-              <h3>${leave.date}</h3>
-              <p>${leave.reason}</p>
+        if (!data || data.length === 0) { container.innerHTML = '<p>暂无请假记录</p>'; return; }
+        
+        container.innerHTML = data.map(leave => {
+          let statusClass = 'status-info';
+          if (leave.status === '已批准') statusClass = 'status-success';
+          if (leave.status === '已拒绝') statusClass = 'status-danger';
+          
+          return `
+            <div class="list-item">
+              <div class="list-item-info">
+                <h3>${leave.date}</h3>
+                <p>${leave.reason}</p>
+              </div>
+              <span class="status-badge ${statusClass}">${leave.status}</span>
             </div>
-            <span class="status-badge ${statusClass}">${leave.status}</span>
-          </div>
-        `;
-      }).join('');
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('加载请假记录失败:', error);
+      }
     }
     
     document.getElementById('leaveForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      
       const date = document.getElementById('leaveDate').value;
       const reason = document.getElementById('reason').value.trim();
-      
-      if (!date || !reason) {
-        alert('请填写完整信息');
-        return;
-      }
+      if (!date || !reason) { alert('请填写完整信息'); return; }
       
       try {
-        await submitLeaveRequest(
-          user.id || user.student_id,
-          courseId,
-          date,
-          reason
-        );
-        
+        await submitLeaveRequest(user.student_id, courseId, date, reason);
         alert('请假申请已提交');
         document.getElementById('leaveForm').reset();
         loadLeaveRequests();

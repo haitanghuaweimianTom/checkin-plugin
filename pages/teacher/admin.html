@@ -30,23 +30,17 @@
     
     <div class="card">
       <h2>教师列表</h2>
-      <div id="teacherList" class="empty-state">
-        <p>加载中...</p>
-      </div>
+      <div id="teacherList" class="empty-state"><p>加载中...</p></div>
     </div>
     
     <div class="card">
       <h2>学生列表</h2>
-      <div id="studentList" class="empty-state">
-        <p>加载中...</p>
-      </div>
+      <div id="studentList" class="empty-state"><p>加载中...</p></div>
     </div>
     
     <div class="card">
       <h2>课程列表</h2>
-      <div id="courseList" class="empty-state">
-        <p>加载中...</p>
-      </div>
+      <div id="courseList" class="empty-state"><p>加载中...</p></div>
     </div>
     
     <div class="nav-links">
@@ -56,12 +50,7 @@
   
   <script type="module">
     import { getUser } from '../../js/auth.js';
-    import { initSupabase } from '../../js/supabase.js';
-    import { 
-      createTeacher, listTeachers, deleteTeacher,
-      getAllStudents, deleteStudent,
-      getAllCourses, deleteCourse
-    } from '../../js/api.js';
+    import { listTeachers, createTeacher, deleteTeacher, getAllStudents, deleteStudent, getAllCourses, deleteCourse } from '../../js/api.js';
     
     const user = getUser();
     if (!user || user.role !== 'teacher') {
@@ -69,42 +58,28 @@
       return;
     }
     
-    try { await initSupabase(); } catch (e) { console.error(e); }
-    
     async function loadTeachers() {
       try {
         const teachers = await listTeachers();
         const container = document.getElementById('teacherList');
-        
-        if (teachers.length === 0) {
-          container.innerHTML = '<p>暂无教师</p>';
-          return;
-        }
-        
+        if (teachers.length === 0) { container.innerHTML = '<p>暂无教师</p>'; return; }
         container.innerHTML = teachers.map(t => `
           <div class="list-item">
             <div class="list-item-info">
               <h3>${t.name}</h3>
-              <p>${t.email}</p>
+              <p>创建时间: ${new Date(t.created_at).toLocaleString('zh-CN')}</p>
             </div>
             <button class="btn btn-danger btn-sm" onclick="removeTeacher('${t.id}')">删除</button>
           </div>
         `).join('');
-      } catch (error) {
-        console.error('加载教师失败:', error);
-      }
+      } catch (error) { console.error(error); }
     }
     
     async function loadStudents() {
       try {
         const students = await getAllStudents();
         const container = document.getElementById('studentList');
-        
-        if (students.length === 0) {
-          container.innerHTML = '<p>暂无学生</p>';
-          return;
-        }
-        
+        if (students.length === 0) { container.innerHTML = '<p>暂无学生</p>'; return; }
         container.innerHTML = students.map(s => `
           <div class="list-item">
             <div class="list-item-info">
@@ -114,21 +89,14 @@
             <button class="btn btn-danger btn-sm" onclick="removeStudent('${s.student_id}', '${s.course_id}')">删除</button>
           </div>
         `).join('');
-      } catch (error) {
-        console.error('加载学生失败:', error);
-      }
+      } catch (error) { console.error(error); }
     }
     
     async function loadCourses() {
       try {
         const courses = await getAllCourses();
         const container = document.getElementById('courseList');
-        
-        if (courses.length === 0) {
-          container.innerHTML = '<p>暂无课程</p>';
-          return;
-        }
-        
+        if (courses.length === 0) { container.innerHTML = '<p>暂无课程</p>'; return; }
         container.innerHTML = courses.map(c => `
           <div class="list-item">
             <div class="list-item-info">
@@ -138,54 +106,32 @@
             <button class="btn btn-danger btn-sm" onclick="removeCourse('${c.id}')">删除</button>
           </div>
         `).join('');
-      } catch (error) {
-        console.error('加载课程失败:', error);
-      }
+      } catch (error) { console.error(error); }
     }
     
     window.removeTeacher = async (id) => {
       if (!confirm('确定删除该教师？')) return;
-      try {
-        await deleteTeacher(id);
-        alert('删除成功');
-        loadTeachers();
-      } catch (error) {
-        alert('删除失败: ' + error.message);
-      }
+      await deleteTeacher(id);
+      loadTeachers();
     };
     
     window.removeStudent = async (studentId, courseId) => {
       if (!confirm('确定删除该学生？')) return;
-      try {
-        await deleteStudent(studentId, courseId);
-        alert('删除成功');
-        loadStudents();
-      } catch (error) {
-        alert('删除失败: ' + error.message);
-      }
+      await deleteStudent(studentId, courseId);
+      loadStudents();
     };
     
     window.removeCourse = async (id) => {
       if (!confirm('确定删除该课程？相关数据将一并删除。')) return;
-      try {
-        await deleteCourse(id);
-        alert('删除成功');
-        loadCourses();
-      } catch (error) {
-        alert('删除失败: ' + error.message);
-      }
+      await deleteCourse(id);
+      loadCourses();
     };
     
     document.getElementById('addTeacherForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      
       const name = document.getElementById('teacherName').value.trim();
       const password = document.getElementById('teacherPwd').value;
-      
-      if (!name || !password) {
-        alert('请填写完整信息');
-        return;
-      }
+      if (!name || !password) { alert('请填写完整信息'); return; }
       
       try {
         await createTeacher(name, password);

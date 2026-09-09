@@ -23,8 +23,7 @@
         
         <div class="form-group">
           <label for="classroomName">教室位置</label>
-          <input type="text" id="classroomName" placeholder="使用当前位置" disabled>
-          <small style="color: #666; font-size: 12px;">将使用默认教室坐标</small>
+          <input type="text" id="classroomName" disabled>
         </div>
         
         <button type="submit" class="btn btn-primary">创建课程</button>
@@ -46,8 +45,7 @@
   </div>
   
   <script type="module">
-    import { getUser, teacherLogout } from '../../js/auth.js';
-    import { initSupabase } from '../../js/supabase.js';
+    import { getUser, clearUser } from '../../js/auth.js';
     import { createCourse, getTeacherCourses } from '../../js/api.js';
     import { CLASSROOM_LOCATION } from '../../js/config.js';
     
@@ -57,15 +55,12 @@
       return;
     }
     
-    try { await initSupabase(); } catch (e) { console.error(e); }
-    
     document.getElementById('teacherInfo').textContent = `欢迎, ${user.name}`;
-    document.getElementById('classroomName').value = 
-      `当前位置 (${CLASSROOM_LOCATION.lat}, ${CLASSROOM_LOCATION.lng})`;
+    document.getElementById('classroomName').value = `(${CLASSROOM_LOCATION.lat}, ${CLASSROOM_LOCATION.lng})`;
     
     async function loadCourses() {
       try {
-        const courses = await getTeacherCourses(user.name);
+        const courses = await getTeacherCourses(user.id);
         const container = document.getElementById('courseList');
         
         if (courses.length === 0) {
@@ -102,14 +97,13 @@
       e.preventDefault();
       
       const name = document.getElementById('courseName').value.trim();
-      
       if (!name) {
         alert('请输入课程名称');
         return;
       }
       
       try {
-        const course = await createCourse(name, user.name, CLASSROOM_LOCATION);
+        const course = await createCourse(name, user.id, user.name, CLASSROOM_LOCATION.lat, CLASSROOM_LOCATION.lng);
         alert(`课程创建成功！课程码: ${course.code}`);
         document.getElementById('courseName').value = '';
         loadCourses();
@@ -118,9 +112,9 @@
       }
     });
     
-    document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+    document.getElementById('logoutBtn').addEventListener('click', (e) => {
       e.preventDefault();
-      await teacherLogout();
+      clearUser();
       window.location.href = 'login.html';
     });
     

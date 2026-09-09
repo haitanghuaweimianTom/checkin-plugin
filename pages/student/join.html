@@ -19,7 +19,6 @@
           <label for="courseCode">课程码</label>
           <input type="text" id="courseCode" placeholder="请输入6位课程码" maxlength="6" required>
         </div>
-        
         <button type="submit" class="btn btn-primary">加入课程</button>
       </form>
     </div>
@@ -39,31 +38,21 @@
   
   <script type="module">
     import { getUser, setUser } from '../../js/auth.js';
-    import { initSupabase } from '../../js/supabase.js';
     import { joinCourse } from '../../js/api.js';
     
     const user = getUser();
-    if (!user) {
-      window.location.href = 'login.html';
-      return;
-    }
-    
-    try { await initSupabase(); } catch(e) { console.error(e); }
+    if (!user) { window.location.href = 'login.html'; return; }
     
     function renderJoinedCourses() {
       const container = document.getElementById('joinedCourses');
       const courses = user.courses || [];
-      
-      if (courses.length === 0) {
-        container.innerHTML = '<p>暂无课程</p>';
-        return;
-      }
+      if (courses.length === 0) { container.innerHTML = '<p>暂无课程</p>'; return; }
       
       container.innerHTML = courses.map(course => `
         <div class="list-item">
           <div class="list-item-info">
             <h3>${course.name}</h3>
-            <p>${course.teacher_name}</p>
+            <p>${course.teacher_name || ''}</p>
           </div>
           <button class="btn btn-primary btn-sm" onclick="selectCourse('${course.id}')">选择</button>
         </div>
@@ -78,26 +67,18 @@
     
     document.getElementById('joinForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      
       const code = document.getElementById('courseCode').value.trim().toUpperCase();
-      
-      if (code.length !== 6) {
-        alert('请输入6位课程码');
-        return;
-      }
+      if (code.length !== 6) { alert('请输入6位课程码'); return; }
       
       try {
         const { course, student } = await joinCourse(code, user.student_id, user.name);
-        
         if (!user.courses) user.courses = [];
-        
         const exists = user.courses.find(c => c.id === course.id);
         if (!exists) {
           user.courses.push(course);
           user.current_course_id = course.id;
           setUser(user);
         }
-        
         alert('加入课程成功！');
         window.location.href = 'checkin.html';
       } catch (error) {

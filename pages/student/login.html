@@ -35,20 +35,14 @@
   </div>
   
   <script type="module">
-    import { studentLogin } from '../../js/auth.js';
+    import { setUser } from '../../js/auth.js';
     
     document.getElementById('loginForm').addEventListener('submit', (e) => {
       e.preventDefault();
-      
       const studentId = document.getElementById('studentId').value.trim();
       const name = document.getElementById('name').value.trim();
-      
-      if (!studentId || !name) {
-        alert('请填写完整信息');
-        return;
-      }
-      
-      studentLogin(studentId, name);
+      if (!studentId || !name) { alert('请填写完整信息'); return; }
+      setUser({ role: 'student', student_id: studentId, name });
       window.location.href = 'join.html';
     });
   </script>
